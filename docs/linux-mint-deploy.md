@@ -1,99 +1,126 @@
 # Deploy Linux Mint
 
-Panduan deploy project ke server Linux Mint.
+Panduan deploy project ke server Linux Mint dengan Docker.
+
+## Kenapa Docker
+
+- LAMPP kamu bisa tetap pakai PHP 7.4 untuk aplikasi lain
+- project klinik jalan di PHP 8.2 di container sendiri
+- environment lebih konsisten antara Windows dan Linux Mint
 
 ## Prasyarat Server
 
 - Linux Mint
-- Nginx atau Apache
-- PHP 8.2+ dengan extension umum Laravel
-- MySQL / MariaDB
-- Composer
+- Docker Engine
+- Docker Compose v2
+- Git
+
+## Struktur Docker
+
+File yang dipakai:
+
+- `docker-compose.yml`
+- `docker/php/Dockerfile`
+- `docker/php/php.ini`
+- `docker/nginx/default.conf`
+- `docker/.env.docker.example`
 
 ## Langkah Deploy
 
-1. Upload atau clone project ke server
-
-2. Pastikan folder berikut ada dan writable:
-
-   - `storage`
-   - `bootstrap/cache`
-
-3. Install dependency
+1. Clone project
 
    ```bash
-   composer install --no-dev --optimize-autoloader
+   git clone https://github.com/suryadragn/klinik.git
+   cd klinik
    ```
 
-4. Siapkan `.env`
-
-   - isi `APP_NAME`
-   - isi data klinik di section `APP_CLINIC_*`
-   - isi koneksi database server
-
-5. Generate key jika belum ada
+2. Siapkan environment Docker
 
    ```bash
-   php artisan key:generate
+   cp docker/.env.docker.example .env
    ```
 
-6. Jalankan migration
+   Lalu sesuaikan jika perlu:
+
+   - `APP_URL=http://localhost:8080`
+   - `DB_HOST=db`
+   - `DB_PORT=3306`
+   - `DB_DATABASE=klinik_griya_husada_1`
+   - `DB_USERNAME=root`
+   - `DB_PASSWORD=secret`
+
+3. Build dan jalankan container
 
    ```bash
-   php artisan migrate --force
+   docker compose up -d --build
    ```
 
-   Jika ingin langsung isi data awal:
+4. Install dependency di container
 
    ```bash
-   php artisan db:seed --force
+   docker compose exec app composer install --no-dev --optimize-autoloader
    ```
 
-7. Set permission
-
-   Pastikan web server bisa menulis ke:
-
-   - `storage`
-   - `bootstrap/cache`
-
-8. Buat symlink storage
+5. Generate app key jika belum ada
 
    ```bash
-   php artisan storage:link
+   docker compose exec app php artisan key:generate
    ```
 
-9. Arahkan document root ke folder `public`
+6. Jalankan migration dan seed
 
-## Contoh Nginx
+   ```bash
+   docker compose exec app php artisan migrate --force
+   docker compose exec app php artisan db:seed --force
+   ```
 
-```nginx
-server {
-    listen 80;
-    server_name domainkamu.com;
-    root /var/www/gh1/public;
+   Jika ingin khusus dokter TSV:
 
-    index index.php index.html;
+   ```bash
+   docker compose exec app php artisan db:seed --class=DokterSeeder
+   ```
 
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
+7. Buat storage symlink
 
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
-    }
+   ```bash
+   docker compose exec app php artisan storage:link
+   ```
 
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
-}
+8. Cache konfigurasi jika sudah stabil
+
+   ```bash
+   docker compose exec app php artisan config:cache
+   docker compose exec app php artisan route:cache
+   docker compose exec app php artisan view:cache
+   ```
+
+9. Buka web
+
+   - `http://localhost:5077`
+
+## Permission Folder
+
+Jika perlu, pastikan folder berikut bisa ditulis container:
+
+- `storage`
+- `bootstrap/cache`
+
+Kalau file permission bermasalah, jalankan:
+
+```bash
+sudo chown -R $USER:$USER .
+chmod -R 775 storage bootstrap/cache
 ```
 
-## Setelah Deploy
+## Update Setelah Pull
 
-- jalankan `php artisan config:cache`
-- jalankan `php artisan route:cache` jika sudah stabil
-- jalankan `php artisan view:cache`
+Kalau ada perubahan dari Git:
+
+```bash
+git pull
+docker compose exec app composer install --no-dev --optimize-autoloader
+docker compose exec app php artisan migrate --force
+```
 
 ## Login Admin Awal
 
@@ -101,3 +128,9 @@ Jika seeder dijalankan, akun awal superadmin adalah:
 
 - Username: `admingriy4`
 - Password: `griya4husada1`
+
+## Catatan
+
+- LAMPP tetap bisa dipakai untuk aplikasi lain
+- project klinik ini berjalan terisolasi di container PHP 8.2
+- kalau nanti mau pindah ke domain, tinggal ubah `APP_URL` dan mapping port di reverse proxy
