@@ -9,6 +9,8 @@ services:
     volumes:
       - ./:/var/www/html
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-klinik.ini:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - klinik-net
 
@@ -25,25 +27,6 @@ services:
       - app
     networks:
       - klinik-net
-
-  db:
-    image: mysql:8.0
-    container_name: klinik-db
-    restart: unless-stopped
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-klinik_griya_husada_1}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
-      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
-    ports:
-      - "3307:3306"
-    volumes:
-      - klinik-db-data:/var/lib/mysql
-    networks:
-      - klinik-net
-
-volumes:
-  klinik-db-data:
 
 networks:
   klinik-net:

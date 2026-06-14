@@ -43,11 +43,11 @@ File yang dipakai:
    Lalu sesuaikan jika perlu:
 
    - `APP_URL=http://localhost:8080`
-   - `DB_HOST=db`
-   - `DB_PORT=3306`
+   - `DB_HOST=host.docker.internal`
+   - `DB_PORT=3306` atau port MySQL yang dipakai host
    - `DB_DATABASE=klinik_griya_husada_1`
    - `DB_USERNAME=root`
-   - `DB_PASSWORD=secret`
+   - `DB_PASSWORD=` sesuai server host
 
 3. Build dan jalankan container
 
@@ -133,4 +133,5 @@ Jika seeder dijalankan, akun awal superadmin adalah:
 
 - LAMPP tetap bisa dipakai untuk aplikasi lain
 - project klinik ini berjalan terisolasi di container PHP 8.2
+- database tetap memakai MySQL yang sudah ada di host
 - kalau nanti mau pindah ke domain, tinggal ubah `APP_URL` dan mapping port di reverse proxy
